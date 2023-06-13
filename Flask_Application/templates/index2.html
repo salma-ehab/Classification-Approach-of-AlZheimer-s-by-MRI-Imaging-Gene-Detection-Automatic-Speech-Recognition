@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Flask Gene</title> 
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" /> 
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/main_styling.css') }}">        
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+</head>
+
+<body>
+<div class="container">
+<div class="row">
+    <h2>Select execl file to upload</h2>
+    <p>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul>
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    </p>
+
+    <form method="post" action="/Gene" enctype="multipart/form-data">
+        <dl>
+            <p>
+                <input type="file" name="file" class="form-control" autocomplete="off" required>
+            </p>
+        </dl>
+
+        <label for="year">Year of birth:</label>
+        <select id="year" name="year" required>
+        <option value="">Year</option>
+          {% if year%}
+              {% for year_in_loop in range(1910, 2024) %}
+                  {% if year_in_loop == year%}
+                      <option value="{{ year_in_loop }}" selected>{{ year_in_loop }}</option>
+                  {% else %}
+                     <option value="{{year_in_loop }}">{{ year_in_loop }}</option>
+                  {% endif %}
+              {% endfor %}
+          {% else %}
+              {% for year in range(1910, 2024) %}
+                  <option value="{{ year }}">{{ year }}</option>
+              {% endfor %}
+          {% endif %}
+        </select>
+
+        <label class="age_label" for="month">Month of birth:</label>
+        <select id="month" name="month" required>
+        <option value="">Month</option>
+          {% if month%}
+              {% for month_in_loop in range(1, 13) %}
+                  {% if month_in_loop == month%}
+                      <option value="{{ month_in_loop }}" selected>{{ month_in_loop }}</option>
+                  {% else %}
+                      <option value="{{month_in_loop}}">{{ month_in_loop }}</option>
+                  {% endif %}
+              {% endfor %}
+          {% else %}
+              {% for month in range(1, 13) %}
+                  <option value="{{ month }}">{{ month }}</option>
+              {% endfor %}
+          {% endif %}
+        </select>
+
+        <label class="age_label" for="day">Day of birth:</label>
+        <select id="day" name="day" required>
+        <option value="">Day</option>
+          {% if day%}
+              {% for day_in_loop in range(1, 32) %}
+                  {% if day_in_loop == day%}
+                     <option value="{{ day_in_loop }}" selected>{{ day_in_loop }}</option>
+                  {% else %}
+                     <option value="{{day_in_loop}}">{{ day_in_loop }}</option>
+                  {% endif %}
+              {% endfor %}
+          {% else %}
+              {% for day in range(1, 32) %}
+                  <option value="{{ day }}">{{ day }}</option>
+              {% endfor %}
+          {% endif %}
+        </select>
+
+        <span class="gender_radio_btns">
+        <label>Gender:</label>
+        {% if gender%}
+             {% if gender == "m"%}
+                <input type="radio" id="male" name="gender" value="m" required checked>
+                <label for="male">Male</label>
+                <input type="radio" id="female" name="gender" value="f">
+                <label for="female">Female</label>
+
+              {% elif gender == "f"%}
+                <input type="radio" id="male" name="gender" value="m" required>
+                <label for="male">Male</label>
+                <input type="radio" id="female" name="gender" value="f" checked>
+                <label for="female">Female</label>
+              {% endif %}
+
+        {% else %}
+              <input type="radio" id="male" name="gender" value="m" required>
+              <label for="male">Male</label>
+             <input type="radio" id="female" name="gender" value="f">
+             <label for="female">Female</label>
+        {% endif %}
+        </span>
+        <br><br>
+  
+        <input id="submit_btn" type="submit" value="Diagnose" class="btn btn-info">
+    </form>
+
+    <a href=Results><button id="results_btn">Final Results</button></a>
+
+    <br><br>
+
+    {% if predicted_label%}
+         <label for="predicted_label" id="gene_result">Result: {{ "{}% that the patient's diagnosis is {} according to genetic data entered".format(probability,predicted_label)}}</label>
+
+    {% endif %}
+
+</div>
+</div>
+</body>
+</html>

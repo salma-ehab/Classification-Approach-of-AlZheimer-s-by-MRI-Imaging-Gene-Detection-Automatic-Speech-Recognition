@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Flask MRI</title> 
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" /> 
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/main_styling.css') }}">        
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+</head>
+
+<body>
+<div class="container">
+<div class="row">
+    <h2>Select an MRI to upload</h2>
+    <p>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul>
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    </p>
+
+    <form method="post" action="/" enctype="multipart/form-data">
+        <dl>
+            <p>
+                <input type="file" name="file1" class="form-control" autocomplete="off" required>
+            </p>
+        </dl>
+        
+        <input id="submit_btn" type="submit" value="Diagnose" class="btn btn-info">
+
+    </form>
+
+      <a href=Gene><button id="gene_btn">Diagnose using genetic data</button></a>
+      <br>
+  
+      
+    <table>
+    {% if final_label%}
+       
+      <tr>
+        <td id="mri_result" colspan="3">Result: {{ "{}% that the patient's diagnosis is {} according to all models".format(combined_models_probability,final_label)}}</td>
+      </tr>
+
+    {% endif %}
+
+    {% if result_sagittal and result_coronal and result_axial%}
+      <tr>
+        <td><img id="img" src="{{url_for('static', filename=sagittal_segment)}}" alt="Sagittal Segment"></td>
+        <td><img id="img" src="{{url_for('static', filename=coronal_segment)}}" alt="Coronal Segment"></td>
+        <td><img id="img" src="{{url_for('static', filename=axial_segment)}}" alt="Axial Segment"></td>
+      </tr>
+
+      <tr>
+        <td class="segments_result">Sagittal Segment Result: {{ "{}% that the patient's diagnosis is {} according to sagittal model ".format(probability_sagittal,result_sagittal)}}</td>
+        <td class="segments_result">Coronal Segment Result: {{ "{}% that the patient's diagnosis is {}  according to coronal model ".format(probability_coronal,result_coronal)}}</td>
+        <td class="segments_result">Axial Segment Result: {{ "{}% that the patient's diagnosis is {}  according to axial model ".format(probability_axial,result_axial)}}</td>
+      </tr>
+
+    {% endif %}
+    </table>
+
+</div>
+</div>
+</body>
+</html>

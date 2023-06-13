@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Flask ResultsI</title> 
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" /> 
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/main_styling.css') }}">        
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+
+<body>
+<div class="container">
+<div class="row">
+
+        {% if final_label%}
+
+        <table id="result_table">
+        <tr>
+            <td><button id="download_results">Download Results</button></td>
+        </tr>
+
+        <tr>
+            <td colspan="2">
+                
+                   <label for="final_label" id="final_result">Final Result: {{ "{}% that the patient's diagnosis is {}".format(final_label_probability,final_label)}}</label>
+            </td>
+        </tr>
+        <br>
+
+        {% if gene_predicted_label !="" %}
+        <tr>
+            <td colspan="3">
+                   <label for="gene_label_1" id="gene_result_1">Genetic Result: {{ "{}% that the patient's diagnosis is {} according to genetic data entered".format(gene_probability,gene_predicted_label)}}</label>
+            </td>
+        </tr>
+        <br>
+        {% endif %}
+
+        {% if mri_label !="" %}
+        <tr>
+             <td colspan="3">
+                   <label for="mri_label_1" id="mri_result_1">MRI Result: {{ "{}% that the patient's diagnosis is {} according to MRI image entered".format(mri_probability,mri_label)}}</label>
+             </td>
+        </tr>
+        {% endif %}
+
+        {% if mri_label_sagittal !="" and mri_label_coronal !="" and mri_label_axial !="" %}
+        
+        <tr>
+            <td><img id="img" src="{{url_for('static', filename=sagittal_image)}}" alt="Sagittal Segment"></td>
+            <td><img id="img" src="{{url_for('static', filename=coronal_image)}}" alt="Coronal Segment"></td>
+            <td><img id="img" src="{{url_for('static', filename=axial_image)}}" alt="Axial Segment"></td>
+        </tr>
+
+        <tr>
+            <td class="segments_result">Sagittal Segment Result: {{ "{}% that the patient's diagnosis is {} according to sagittal model ".format(mri_probability_sagittal,mri_label_sagittal)}}</td>
+            <td class="segments_result">Coronal Segment Result: {{ "{}% that the patient's diagnosis is {}  according to coronal model ".format(mri_probability_coronal,mri_label_coronal)}}</td>
+            <td class="segments_result">Axial Segment Result: {{ "{}% that the patient's diagnosis is {}  according to axial model ".format(mri_probability_axial,mri_label_axial)}}</td>
+        </tr>
+        {% endif %}
+        </table>
+
+        {% else %}
+             <label for="empty" id="empty">{{"No MRI or genetic data was entered"}}</label>
+        {% endif %}
+        
+
+</div>
+</div>
+
+<script>
+    document.getElementById('download_results').addEventListener('click', () => {
+    
+      document.getElementById('download_results').style.display = 'none';
+      window.print();
+      const buttonStyle = window.getComputedStyle(document.getElementById('download_results'));
+      if (buttonStyle.getPropertyValue('display') === 'none')
+      {
+        document.getElementById('download_results').style.display = 'inline-block';
+      }
+      
+      else 
+      {
+        document.getElementById('download_results').style.display = buttonStyle.getPropertyValue('display');
+      }
+      });
+</script>
+</body>
+</html>
