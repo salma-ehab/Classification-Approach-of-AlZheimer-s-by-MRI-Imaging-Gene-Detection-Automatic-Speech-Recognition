@@ -1,0 +1,79 @@
+#mri_result
+{
+    column-span: 3;
+    text-align: center;
+    font-weight: bold
+}
+
+.segments_result
+{
+    font-weight: bold
+}
+
+#img
+{   
+    width: 350px;
+    height: 350px;
+    padding-top: 30px;
+    padding-bottom: 20px
+}
+
+
+#gene_btn,#results_btn,#download_results,#refresh_mri_btn
+{  
+    padding-top: 7px;
+    padding-bottom: 7px;
+    padding-right: 12px;
+    padding-left: 12px;
+    background-color: #59c0df;
+    color: white;
+    border: #59c0df;
+    border-radius: 5px
+}
+
+#gene_btn,#results_btn
+{
+    float: left;
+    margin-top: -34px;
+    margin-left:10%
+}
+
+.age_label
+{
+    margin-left:10px
+}
+
+.gender_radio_btns
+{
+    margin-left:50px
+}
+
+#gene_result
+{
+    font-size: medium
+}
+
+#final_result,#gene_result_1,#mri_result_1,#empty
+{
+    font-size: large
+}
+
+#result_table
+{
+    margin-top: 10px
+}
+
+#empty
+{
+    margin-top: 50px
+}
+
+#download_results
+{
+    margin-bottom: 20px;
+}
+
+
+
+
+
