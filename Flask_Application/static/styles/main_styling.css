@@ -1,8 +1,27 @@
-#mri_result
+.container
 {
-    column-span: 3;
-    text-align: center;
-    font-weight: bold
+    padding-bottom: 50px
+}
+
+
+#mri_result,#gene_result,#gene_probability,#final_result,#final_probability,#audio_result
+{
+    font-weight: bold;
+    font-size:medium
+}
+
+
+#MRI_probability,#gene_probability
+{
+    padding-right: 10px
+}
+
+.probability
+{
+    font-weight: bold;
+    font-size:medium;
+    padding-right: 10px;
+    text-align: left
 }
 
 .segments_result
@@ -19,7 +38,7 @@
 }
 
 
-#gene_btn,#results_btn,#download_results,#refresh_mri_btn
+#gene_btn,#audio_btn,#results_btn,#download_results,#another_diagnosis
 {  
     padding-top: 7px;
     padding-bottom: 7px;
@@ -31,7 +50,7 @@
     border-radius: 5px
 }
 
-#gene_btn,#results_btn
+#gene_btn,#audio_btn,#results_btn
 {
     float: left;
     margin-top: -34px;
@@ -48,31 +67,28 @@
     margin-left:50px
 }
 
-#gene_result
-{
-    font-size: medium
-}
-
-#final_result,#gene_result_1,#mri_result_1,#empty
-{
-    font-size: large
-}
-
 #result_table
 {
-    margin-top: 10px
+    margin-top: 20px
 }
 
 #empty
 {
-    margin-top: 50px
+    margin-top: 50px;
+    font-size: xx-large;
+    text-align: center
+    
 }
 
 #download_results
 {
-    margin-bottom: 20px;
+    margin-right: 20px
 }
 
+#status-message
+{
+    font-size:medium
+}
 
 
 
