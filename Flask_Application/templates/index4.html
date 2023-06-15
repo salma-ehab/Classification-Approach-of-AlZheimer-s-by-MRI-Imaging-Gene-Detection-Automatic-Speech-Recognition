@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Flask Audio</title> 
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" /> 
+<link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles/main_styling.css') }}">        
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+    <div class="row">
+        <h2>Select an MP3 to upload</h2>
+        <p>
+            {% if status != "" %}
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <ul>
+                {% for message in messages %}
+                  <li id="flash_message">{{ message }}</li>
+                {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
+            {% endif %}
+        </p>
+    
+        <form method="post" action="/Audio" enctype="multipart/form-data">
+            <dl>
+                <p>
+                    <input type="file" id="file2" name="file2" class="form-control" autocomplete="off">
+                </p>
+            </dl>
+            {% if predicted_label%}
+            <input id="submit_btn" type="submit" value="Diagnose" class="btn btn-info" disabled>
+            {% else %}
+            <input id="submit_btn" type="submit" value="Diagnose" class="btn btn-info">
+            {% endif %}
+            
+    
+        </form>
+    
+          <a href=Results><button id="results_btn">Final Results</button></a>
+          <br>
+          <div id="status-message">{{ "{}" .format(status)}}</div> 
+
+          {% if predicted_label%}
+          <table>
+              <tr>
+                  <td id="audio_result" colspan="3">Result: {{"The patient's diagnosis is {}".format(predicted_label)}}</td>
+              </tr>
+      
+              <tr>
+                  <td><label class="probability">AD probability: {{"{:0.2f}%".format(AD_probability)}}</label></td> 
+                  <td><label class="probability">CN probability: {{"{:0.2f}%".format(CN_probability)}}</label></td> 
+                  <td><label class="probability">MCI probability:{{"{:0.2f}%".format(MCI_probability)}}</label></td> 
+              </tr>
+          </table>
+          {% endif %}
+ 
+</div>
+</div>
+
+    <script>
+      $(document).ready(function() {
+       $("#submit_btn").click(function() {
+          $.ajax({
+          url: '/Audio',
+          type: 'POST',
+          beforeSend: function() {
+          var message =document.getElementById('status-message').textContent;
+          var flash_message = document.getElementById('flash_message');
+          if (message !=='No diagnosis as no file was entered' || message!=='No diagnosis as format is not allowed')
+          {
+            if (flash_message)
+            {
+              flash_message.style.display = "none";
+            }
+            $("#status-message").text("Diagnosis is now running. Please wait...");
+          }},
+          error: function(error) {
+          $("#status-message").text("An error occurred while diagnosing.");}
+         });
+        });
+       });
+  </script>
+    
+</body>
+</html>

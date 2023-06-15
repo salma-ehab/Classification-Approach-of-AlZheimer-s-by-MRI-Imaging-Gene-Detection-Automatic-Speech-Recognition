@@ -12,42 +12,54 @@
 <div class="row">
     <h2>Select an MRI to upload</h2>
     <p>
+        {% if status != "" %}
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             <ul>
             {% for message in messages %}
-              <li>{{ message }}</li>
+              <li id="flash_message">{{ message }}</li>
             {% endfor %}
             </ul>
           {% endif %}
         {% endwith %}
+        {% endif %}
     </p>
 
     <form method="post" action="/" enctype="multipart/form-data">
         <dl>
             <p>
-                <input type="file" name="file1" class="form-control" autocomplete="off" required>
+                <input type="file" name="file1" class="form-control" autocomplete="off">
             </p>
         </dl>
         
+        {% if final_label %} 
+        <input id="submit_btn" type="submit" value="Diagnose" class="btn btn-info" disabled>
+        {% else %}
         <input id="submit_btn" type="submit" value="Diagnose" class="btn btn-info">
+        {% endif %}
 
     </form>
 
       <a href=Gene><button id="gene_btn">Diagnose using genetic data</button></a>
       <br>
-  
+      <div id="status-message">{{ "{}" .format(status)}}</div> 
       
-    <table>
     {% if final_label%}
-       
+    <table> 
       <tr>
-        <td id="mri_result" colspan="3">Result: {{ "{}% that the patient's diagnosis is {} according to all models".format(combined_models_probability,final_label)}}</td>
+        <td id="mri_result" colspan="3">Result: {{"The patient's diagnosis is {} according to all models".format(final_label)}}</td>
       </tr>
 
+      <tr>
+        <td><label class="probability">AD probability: {{"{:0.2f}%".format(AD_probability)}}</label></td> 
+        <td><label class="probability">CN probability: {{"{:0.2f}%".format(CN_probability)}}</label></td> 
+        <td><label class="probability">MCI probability:{{"{:0.2f}%".format(MCI_probability)}}</label></td> 
+      </tr>
+    </table>
     {% endif %}
 
     {% if result_sagittal and result_coronal and result_axial%}
+    <table>
       <tr>
         <td><img id="img" src="{{url_for('static', filename=sagittal_segment)}}" alt="Sagittal Segment"></td>
         <td><img id="img" src="{{url_for('static', filename=coronal_segment)}}" alt="Coronal Segment"></td>
@@ -59,11 +71,37 @@
         <td class="segments_result">Coronal Segment Result: {{ "{}% that the patient's diagnosis is {}  according to coronal model ".format(probability_coronal,result_coronal)}}</td>
         <td class="segments_result">Axial Segment Result: {{ "{}% that the patient's diagnosis is {}  according to axial model ".format(probability_axial,result_axial)}}</td>
       </tr>
-
-    {% endif %}
     </table>
+    {% endif %}
+
 
 </div>
 </div>
+
+<script>
+  $(document).ready(function() {
+   $("#submit_btn").click(function() {
+      $.ajax({
+      url: '/',
+      type: 'POST',
+      beforeSend: function() {
+      var message =document.getElementById('status-message').textContent;
+      var flash = document.getElementById('flash_message');
+      console.log(flash)
+      if (message !=='No diagnosis as no file was entered' || message!=='No diagnosis as format is not allowed')
+      {
+        if (flash)
+        {
+              flash_message.style.display = "none";
+        }
+        $("#status-message").text("Diagnosis is now running. Please wait...");
+      }},
+      error: function(error) {
+      $("#status-message").text("An error occurred while diagnosing.");}
+     });
+    });
+   });
+</script>
+
 </body>
 </html>
