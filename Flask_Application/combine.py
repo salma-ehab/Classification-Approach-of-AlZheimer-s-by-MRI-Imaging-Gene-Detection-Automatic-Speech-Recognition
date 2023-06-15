@@ -15,114 +15,94 @@ def get_max(list):
                index = i
      return index,max
 
-def classify_AD_MCI_Gene(Gene_UPLOAD_FOLDER,Gene_filename):
-     
-     csv_file= pd.read_csv(os.path.join(Gene_UPLOAD_FOLDER,Gene_filename)).drop(["Unnamed: 0"], axis=1)
-     gender_dict = {"m": 1, "f": 2} 
-     csv_file['gender'] = csv_file['gender'].map(gender_dict) 
-     features =  csv_file.iloc[:, 1:]
+def get_weight_two_models(acc_model_1,acc_model_2):
 
-     rf_2 = joblib.load("F:/Graduation Project/Flask/Classifiers/rf_2.pkl")
-     probability_array = rf_2.predict_proba(features)
+    model_1_weight =  acc_model_1 /(acc_model_1 + acc_model_2)
+    model_2_weight =  acc_model_2 /(acc_model_1 + acc_model_2)
 
-     return probability_array
+    return model_1_weight,model_2_weight
 
 
-def combine(probabilities_MRI,probabilities_Genes_shown,probabilities_gene_max_result_1,gene_label,Gene_UPLOAD_FOLDER,Gene_filename):
-
-    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    print(probabilities_MRI)
-    print(probabilities_Genes_shown)
-    print(probabilities_gene_max_result_1)
-
-
-    if len(probabilities_MRI) == 0 and gene_label == "":
+def combine(probabilities_MRI,probabilities_Genes,probabilities_Audio):
+    #model 1 --> mri
+    #model 2 --> gene
+    #model 3 --> audio
+    
+    #no diagnosis
+    if len(probabilities_MRI) == 0 and len(probabilities_Genes) == 0 and len(probabilities_Audio) == 0:
          return 0,0
     
-    if len(probabilities_MRI) == 0:
-         return gene_label,probabilities_Genes_shown
-    
-    if gene_label =="":
+    #only mri diagnosis
+    if len(probabilities_Genes) == 0 and len(probabilities_Audio) == 0:
          index,max = get_max(probabilities_MRI)
-         return MRI.get_label(index),max
-
-
+         return MRI.get_label(index),probabilities_MRI
+    
+    #only gene diagnosis
+    if len(probabilities_MRI) == 0 and len(probabilities_Audio) == 0:
+         index,max = get_max(probabilities_Genes)
+         return MRI.get_label(index),probabilities_Genes
+    
+    #only audio diagnosis
+    if len(probabilities_MRI) == 0 and len(probabilities_Genes) == 0:
+         index,max = get_max(probabilities_Audio)
+         return MRI.get_label(index),probabilities_Audio
+    
     model_1_accuracy = 86.67
     model_2_accuracy = (73.17 + 68.7) /2
+    model_3_accuracy = 85.71
 
-    model_1_weight =  round(model_1_accuracy /(model_1_accuracy + model_2_accuracy),2)
-    model_2_weight =  round(model_2_accuracy /(model_1_accuracy + model_2_accuracy),2)
+    array_combined_probabilities = []
 
-    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    print(model_1_weight)
-    print(model_2_weight)
+    #mri and gene diagnosis
+    if len(probabilities_Audio) == 0:
+          for i in range(len(probabilities_MRI)):
+                model_1_weight,model_2_weight = get_weight_two_models(model_1_accuracy,model_2_accuracy)
+                print("wwwww")
+                print(model_1_weight)
+                print(model_2_weight)
+                array_combined_probabilities.append((model_1_weight*probabilities_MRI[i])+(model_2_weight*probabilities_Genes[i]))
 
-    if gene_label == "CN":
-         probability_label_CN_model_2 = probabilities_gene_max_result_1
-         probability_label_AD_MCI_model_2 = 1 - probabilities_gene_max_result_1
+    #mri and audio diagnosis
+    if len(probabilities_Genes) == 0:
+          for i in range(len(probabilities_MRI)):
+                model_1_weight,model_3_weight = get_weight_two_models(model_1_accuracy,model_3_accuracy)
+                print("wwwww")
+                print(model_1_weight)
+                print(model_3_weight)
+                array_combined_probabilities.append((model_1_weight*probabilities_MRI[i])+(model_3_weight*probabilities_Audio[i]))
 
-    elif gene_label =="AD" or gene_label =="MCI":
-         probability_label_CN_model_2 = 1- probabilities_gene_max_result_1
-         probability_label_AD_MCI_model_2 = probabilities_gene_max_result_1
+    #gene and audio diagnosis
+    if len(probabilities_MRI) == 0:
+          for i in range(len(probabilities_Genes)):
+                model_2_weight,model_3_weight = get_weight_two_models(model_2_accuracy,model_3_accuracy)
+                print("wwwww")
+                print(model_2_weight)
+                print(model_3_weight)
+                array_combined_probabilities.append((model_2_weight*probabilities_Genes[i])+(model_3_weight*probabilities_Audio[i]))
 
-    combined_CN = (probabilities_MRI[1]*model_1_weight) + (probability_label_CN_model_2 * model_2_weight)
-    combined_AD_MCI = ((probabilities_MRI[0] + probabilities_MRI[2]) * model_1_weight) + (probability_label_AD_MCI_model_2 * model_2_weight)
-
-    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    print(combined_CN)
-    print(combined_AD_MCI)
-    
-    if combined_CN > combined_AD_MCI:
-         final_label = "CN"
-         final_label_probability=combined_CN
-
-    else:
-         new_AD_probability_model_1 = probabilities_MRI[0] / (probabilities_MRI[0] + probabilities_MRI[2])
-         new_MCI_probability_model_1 = probabilities_MRI[2] / (probabilities_MRI[0] + probabilities_MRI[2])
-
-         print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-         print(new_AD_probability_model_1)
-         print(new_MCI_probability_model_1)
-
-         if gene_label == "AD":
-              probability_label_AD_model_2 = probabilities_Genes_shown
-              probability_label_MCI_model_2 = 1-probabilities_Genes_shown
-        
-         elif gene_label == "MCI":
-              probability_label_AD_model_2 = 1- probabilities_Genes_shown
-              probability_label_MCI_model_2 = probabilities_Genes_shown
-
-         elif gene_label == "CN":
-              
-              probability_array_AD_MCI = classify_AD_MCI_Gene(Gene_UPLOAD_FOLDER,Gene_filename)
-
-              print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-              print(probability_array_AD_MCI)
+    #mri, gene and audio diagnosis
+    if len(probabilities_MRI) != 0 and len(probabilities_Genes) != 0 and len(probabilities_Audio) != 0:
+         model_1_weight =  model_1_accuracy /(model_1_accuracy + model_2_accuracy+model_3_accuracy)
+         model_2_weight =  model_2_accuracy /(model_1_accuracy + model_2_accuracy+model_3_accuracy)
+         model_3_weight =  model_3_accuracy /(model_1_accuracy + model_2_accuracy+model_3_accuracy)
+         print("wwwww")
+         print(model_1_weight)
+         print(model_2_weight)
+         print(model_3_weight)
+         for i in range(len(probabilities_MRI)):
+              array_combined_probabilities.append((model_1_weight*probabilities_MRI[i]) +(model_2_weight*probabilities_Genes[i])+(model_3_weight*probabilities_Audio[i]))
          
-              probability_label_AD_model_2 = probability_array_AD_MCI[0][1]
-              probability_label_MCI_model_2 = probability_array_AD_MCI[0][0]
 
-              print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-              print(probability_label_AD_model_2)
-              print(probability_label_MCI_model_2)
+    final_label,final_probability = get_max(array_combined_probabilities)
+    final_label = MRI.get_label(final_label)
 
-         combined_AD = (new_AD_probability_model_1 * model_1_weight) + (probability_label_AD_model_2 * model_2_weight)
-         combined_MCI = (new_MCI_probability_model_1 * model_1_weight) + (probability_label_MCI_model_2 * model_2_weight)
+    print("CCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+    print(probabilities_MRI)
+    print(probabilities_Audio)
+    print(probabilities_Genes)
+    print(array_combined_probabilities)
+    return final_label,array_combined_probabilities
 
-         print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-         print(combined_AD)
-         print(combined_MCI)
-
-         if combined_AD > combined_MCI:
-              final_label = "AD"
-              final_label_probability=combined_AD
-
-         else:
-              final_label = "MCI"
-              final_label_probability=combined_MCI
-
-    return final_label,final_label_probability
-              
 
               
          

@@ -21,7 +21,6 @@ def get_average_label(iteration_loop,index_label,pred_proba_svr,pred_proba_rf):
     proba_rf= pred_proba_rf[iteration_loop][index_label]
     
     label_proba = (proba_svr + proba_rf)/2
-    label_proba = round(label_proba,2)
     return label_proba
 
 def voting(proba_label_svr,proba_label_rf):
@@ -86,23 +85,71 @@ def classify(upload_folder,file_name):
      pred_label_rf_1,rf_1_probability_array= predict_label(rf_1,features,1)
 
      predict_voting_1,result_probability_1 = voting(svr_1_probability_array,rf_1_probability_array)
-     result_probability_1 = round(result_probability_1,2)
 
+     pred_label_rf_2,rf_2_probability_array = predict_label(rf_2,features,1)
+     probability_2 = rf_2_probability_array[0][pred_label_rf_2[0]]
+     
 
+     print("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg")
+     print(predict_voting_1[0])
+     print(result_probability_1)
+     print(pred_label_rf_2[0])
+     print(probability_2)
+     
+
+     array_probabilities = []
+     
      if predict_voting_1[0] == 1:
-        
-         pred_label_rf_2,rf_2_probability_array = predict_label(rf_2,features,1)
-         probability_2 = rf_2_probability_array[0][pred_label_rf_2[0]]
-         probability_2 = round(probability_2,2)
+         
+         max_result_probability_2 = (result_probability_1)*(probability_2/(probability_2+(1-probability_2)))
+         min_result_probability_2 = (result_probability_1)*((1-probability_2)/(probability_2+(1-probability_2)))
+
+         print(max_result_probability_2)
+         print(min_result_probability_2)
 
          if pred_label_rf_2[0] == 0:
-             return "MCI",probability_2,result_probability_1
+             
+             array_probabilities.append(min_result_probability_2)
+             array_probabilities.append(1-result_probability_1)
+             array_probabilities.append(max_result_probability_2)
+
+             print(array_probabilities)
+
+             return "MCI",array_probabilities
          
          elif pred_label_rf_2[0] == 1:
-             return "AD",probability_2,result_probability_1
+             
+             array_probabilities.append(max_result_probability_2)
+             array_probabilities.append(1-result_probability_1)
+             array_probabilities.append(min_result_probability_2)
+
+             print(array_probabilities)
+
+             return "AD",array_probabilities
     
      elif predict_voting_1[0] == 0:
-         return "CN",result_probability_1,result_probability_1
+         
+         max_result_probability_2 = (1-result_probability_1)*(probability_2/(probability_2+(1-probability_2)))
+         min_result_probability_2 = (1-result_probability_1)*((1-probability_2)/(probability_2+(1-probability_2)))
+
+         print(max_result_probability_2)
+         print(min_result_probability_2)
+
+         if pred_label_rf_2[0] == 0:
+             probability_AD = min_result_probability_2
+             probability_MCI = max_result_probability_2
+
+         elif pred_label_rf_2[0] ==1:
+             probability_AD = max_result_probability_2
+             probability_MCI = min_result_probability_2
+             
+         array_probabilities.append(probability_AD)
+         array_probabilities.append(result_probability_1)
+         array_probabilities.append(probability_MCI)
+
+         print(array_probabilities)
+
+         return "CN",array_probabilities
          
 
 def add_age_gender(upload_folder,file_name,age,gender):
@@ -112,8 +159,8 @@ def add_age_gender(upload_folder,file_name,age,gender):
      csv_file['age'] = age
      csv_file.to_csv(os.path.join(upload_folder,file_name))
 
-     predicted_label,probability_shown,probability_needed_combine = classify(upload_folder,file_name)
-     return predicted_label,probability_shown,probability_needed_combine
+     predicted_label,all_probabilities = classify(upload_folder,file_name)
+     return predicted_label,all_probabilities
   
 def transpose(upload_folder,file_name,age,gender):
 
@@ -121,18 +168,19 @@ def transpose(upload_folder,file_name,age,gender):
      csv_file= csv_file.set_index('SNP Name').T.reset_index()
      csv_file.to_csv(os.path.join(upload_folder,file_name),index=False)
 
-     predicted_label,probability_shown,probability_needed_combine = add_age_gender(upload_folder,file_name,age,gender)
-     return predicted_label,probability_shown,probability_needed_combine
+     predicted_label,all_probabilities = add_age_gender(upload_folder,file_name,age,gender)
+     return predicted_label,all_probabilities
 
 def drop_unnecessary_columns(upload_folder,file_name,age,gender):
 
     df= pd.read_csv(os.path.join(upload_folder,file_name),index_col=0) 
-    df.drop(df.columns.difference(['SNP Name', 'allele_variation']), 1, inplace=True)
-    df = df[['SNP Name', 'allele_variation']]  
+    df.drop(['Unnamed: 0', 'Sample ID','Sample Index','GC Score','SNP Index','Allele1 - Top','Allele2 - Top','Allele1 - Forward',
+    'Allele2 - Forward','Allele1 - AB','Allele2 - AB','Chr','Position','GT Score','Cluster Sep','SNP','Theta','R','X','Y','X Raw'
+    ,'Y Raw','B Allele Freq','Log R Ratio','ref_allele'], axis=1,inplace=True)
     df.to_csv(os.path.join(upload_folder,file_name))
 
-    predicted_label,probability_shown,probability_needed_combine = transpose(upload_folder,file_name,age,gender)
-    return predicted_label,probability_shown,probability_needed_combine
+    predicted_label,all_probabilities = transpose(upload_folder,file_name,age,gender)
+    return predicted_label,all_probabilities
 
 def add_variation(upload_folder,file_name,age,gender):
 
@@ -175,8 +223,8 @@ def add_variation(upload_folder,file_name,age,gender):
     csv_file['allele_variation'] = variation
     csv_file.to_csv(os.path.join(upload_folder,file_name))
 
-    predicted_label,probability_shown,probability_needed_combine = drop_unnecessary_columns(upload_folder,file_name,age,gender)
-    return predicted_label,probability_shown,probability_needed_combine
+    predicted_label,all_probabilities = drop_unnecessary_columns(upload_folder,file_name,age,gender)
+    return predicted_label,all_probabilities
 
 def read_ref_allele_and_snp():
 
@@ -220,8 +268,8 @@ def add_ref_allele(upload_folder,file_name,age,gender):
      csv_file['ref_allele'] = ref_allele_2
      csv_file.to_csv(os.path.join(upload_folder,file_name))
 
-     predicted_label,probability_shown,probability_needed_combine = add_variation(upload_folder,file_name,age,gender)
-     return predicted_label,probability_shown,probability_needed_combine
+     predicted_label,all_probabilities = add_variation(upload_folder,file_name,age,gender)
+     return predicted_label,all_probabilities
 
 def filtering(upload_folder,file_name,age,gender):
         
@@ -233,8 +281,8 @@ def filtering(upload_folder,file_name,age,gender):
         df.drop(filtered_chr_snp_geneLocation, inplace=True)
         df.to_csv(os.path.join(upload_folder,file_name), index=False)
 
-        predicted_label,probability_shown,probability_needed_combine= add_ref_allele(upload_folder,file_name,age,gender)
-        return predicted_label,probability_shown,probability_needed_combine
+        predicted_label,all_probabilities= add_ref_allele(upload_folder,file_name,age,gender)
+        return predicted_label,all_probabilities
 
 
 

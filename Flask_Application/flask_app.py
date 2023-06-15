@@ -4,6 +4,7 @@ import os
 from tqdm import tqdm
 import MRI
 import Gene
+import Audio
 import combine
 import datetime
 
@@ -11,24 +12,38 @@ app = Flask(__name__)
 #UPLOAD_FOLDER = '/home/farah/Documents/softwareApp/HistoryUploads'
 MRI_UPLOAD_FOLDER = 'F:/Graduation Project/Flask/MRI_Uploads/'
 Gene_UPLOAD_FOLDER = 'F:/Graduation Project/Flask/Gene_Uploads/'
+Audio_UPLOAD_FOLDER ='F:/Graduation Project/Flask/Audio_Uploads/'
 app.secret_key = "MRI-flask" #for browser cookies for security.
 ALLOWED_EXTENSIONS_MRI = set(['nii'])
 ALLOWED_EXTENSIONS_GENE = set(['csv'])
+ALLOWED_EXTENSIONS_AUDIO = set(['mp3'])
 
-MRI_Probabilities = []
-Gene_Probabilities_Label=0
-Gene_Probabilities_max_result_1 = 0
 Gene_predicted_label = ""
-Gene_filename = ""
+Gene_all_probabilities = []
+Gene_AD_probability = 0
+Gene_CN_probability = 0
+Gene_MCI_probability = 0
+
+Audio_predicted_label = ""
+Audio_all_probabilities = []
+Audio_AD_probability = 0
+Audio_CN_probability = 0
+Audio_MCI_probability = 0
+
 
 MRI_label=""
-MRI_combined_probability=0
+MRI_all_Probabilities = []
+MRI_AD_probability = 0
+MRI_CN_probability = 0
+MRI_MCI_probability = 0
+
 MRI_label_sagittal=""
 MRI_probability_sagittal=0
 MRI_label_coronal=""
 MRI_probability_coronal=0
 MRI_label_axial=""
 MRI_probability_axial=0
+
 
 sagittal_image = ""
 coronal_image = ""
@@ -60,18 +75,28 @@ def get_age(birth_year,birth_month,birth_day):
                 age = current_year - birth_year
 
     return age
-        
 
-def upload(file_name,upload_folder,allowed_extensions,empty_file_message,successful_upload_message,allowed_types_message,check_type):
+def get_label_probability(array_probability):
+    
+    AD_probability = array_probability[0]
+    CN_probability = array_probability[1]
+    MCI_probability = array_probability[2]
+
+    return AD_probability,CN_probability,MCI_probability
+
+        
+def upload(file_name,upload_folder,allowed_extensions,empty_file_message,allowed_types_message,check_type):
      
      if file_name not in request.files: #dict. and check with key file1 to ensure that a file was indeed submitted in the request.
-        flash('No file part')
 
         if check_type == 0:
             return  redirect(url_for('Run_MRI'))
         
         elif check_type ==1:
             return redirect(url_for('Run_Gene'))
+        
+        elif check_type ==2:
+            return redirect(url_for('Run_Audio'))
         
          
      file = request.files[file_name] #retrieve file with key file1
@@ -79,25 +104,40 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,success
      if file.filename == '':
         flash(empty_file_message)
         if check_type == 0:
-            return  redirect(url_for('Run_MRI'))
+            
+            return  render_template('index.html',status ="No diagnosis as no file was entered")
         
         elif check_type ==1:
-            return redirect(url_for('Run_Gene'))
+            year = int(request.form['year'])
+            month = int(request.form['month'])
+            day = int(request.form['day'])
+            age = get_age(year,month,day)
+            gender = request.form['gender']
+
+            return render_template('index2.html',year = year, month = month,day=day,gender=gender,status = "No diagnosis as no file was entered")
+            
+        elif check_type ==2:
+            return render_template('index4.html',status ="No diagnosis as no file was entered")
      
      if file and allowed_file(file.filename,allowed_extensions): #it checks if the file object exists and if the filename has an allowed extension using the allowed_file function you mentioned earlier. 
              filename = secure_filename(file.filename)
              file.save(os.path.join(upload_folder, filename))
-             flash(successful_upload_message)
 
              if check_type == 0:
-                  result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities = MRI.Normalization(upload_folder,filename)
-                  global MRI_Probabilities 
-                  MRI_Probabilities = all_probabilities
+                  result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities = MRI.Normalization(upload_folder,filename)
+
+                  AD_probability,CN_probability,MCI_probability = get_label_probability(all_probabilities)
 
                   global MRI_label
                   MRI_label = final_label
-                  global MRI_combined_probability
-                  MRI_combined_probability = combined_probability*100
+                  global MRI_all_Probabilities
+                  MRI_all_Probabilities = all_probabilities
+                  global MRI_AD_probability
+                  MRI_AD_probability = AD_probability
+                  global MRI_CN_probability
+                  MRI_CN_probability = CN_probability
+                  global MRI_MCI_probability
+                  MRI_MCI_probability = MCI_probability
 
                   global MRI_label_sagittal
                   MRI_label_sagittal = result_sagittal_label
@@ -125,7 +165,8 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,success
 
                   return render_template('index.html', result_sagittal = result_sagittal_label,probability_sagittal= probability_sagittal,
                                result_coronal = result_coronal_label,probability_coronal = probability_coronal,result_axial = result_axial_label,
-                               probability_axial = probability_axial,final_label = final_label, combined_models_probability =  combined_probability*100,
+                               probability_axial = probability_axial,final_label = final_label,AD_probability = round(AD_probability,2)*100,
+                               CN_probability = round(CN_probability,2)*100,MCI_probability = round(MCI_probability,2)*100,
                                sagittal_segment = sagittal_segment,coronal_segment = coronal_segment,axial_segment = axial_segment) 
              
 
@@ -139,23 +180,47 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,success
 
                  gender = request.form['gender']
             
-                 predicted_label,probability_shown,probability_needed_combine = Gene.filtering(Gene_UPLOAD_FOLDER,filename,age,gender)
+                 gene_predicted_label,gene_all_probabilities = Gene.filtering(upload_folder,filename,age,gender)
 
-                 global Gene_Probabilities_Label
-                 Gene_Probabilities_Label = probability_shown
-                 global Gene_Probabilities_max_result_1
-                 Gene_Probabilities_max_result_1 = probability_needed_combine
+                 AD_probability,CN_probability,MCI_probability = get_label_probability(gene_all_probabilities)
+
+
                  global Gene_predicted_label
-                 Gene_predicted_label = predicted_label
-                 global Gene_filename
-                 Gene_filename = filename
+                 Gene_predicted_label = gene_predicted_label
+                 global Gene_all_probabilities
+                 Gene_all_probabilities = gene_all_probabilities
+                 global Gene_AD_probability
+                 Gene_AD_probability = AD_probability
+                 global Gene_CN_probability
+                 Gene_CN_probability = CN_probability
+                 global Gene_MCI_probability
+                 Gene_MCI_probability = MCI_probability
 
-                 return render_template('index2.html',year = year, month = month,day=day,gender=gender, predicted_label = predicted_label,probability = probability_shown*100)
+                 return render_template('index2.html',year = year, month = month,day=day,gender=gender,predicted_label = gene_predicted_label,AD_probability = round(AD_probability,2)*100,CN_probability = round(CN_probability,2)*100,MCI_probability = round(MCI_probability,2)*100)
+             
+             
+             elif check_type ==2:
+                 
+                 audio_predicted_label,predict_probabilities = Audio.perform_transcription(upload_folder,filename)
+                 AD_probability,CN_probability,MCI_probability = get_label_probability(predict_probabilities)
+
+                 global Audio_predicted_label
+                 Audio_predicted_label = audio_predicted_label
+                 global Audio_all_probabilities
+                 Audio_all_probabilities = predict_probabilities
+                 global Audio_AD_probability
+                 Audio_AD_probability = AD_probability
+                 global Audio_CN_probability
+                 Audio_CN_probability = CN_probability
+                 global Audio_MCI_probability
+                 Audio_MCI_probability = MCI_probability
+
+                 return render_template('index4.html',predicted_label = audio_predicted_label,AD_probability = round(AD_probability,2)*100,CN_probability = round(CN_probability,2)*100,MCI_probability = round(MCI_probability,2)*100)
                  
      else:
          flash(allowed_types_message)
          if check_type == 0:
-            return  redirect(url_for('Run_MRI'))
+            return  render_template('index.html',status = "No diagnosis as format is not allowed")
         
          elif check_type ==1:
 
@@ -165,14 +230,20 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,success
             age = get_age(year,month,day)
             gender = request.form['gender']
 
-            return render_template('index2.html',year = year, month = month,day=day,gender=gender)
+            return render_template('index2.html',year = year, month = month,day=day,gender=gender,status = "No diagnosis as format is not allowed")
+         
+         elif check_type ==2:
+            return render_template('index4.html',status = "No diagnosis as format is not allowed")
                
 
 def upload_img():
-    return upload('file1',MRI_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_MRI,'No image selected for uploading','Image successfully uploaded','Allowed image types are nii files',0)
+    return upload('file1',MRI_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_MRI,'No image selected for uploading','Allowed image types are nii files',0)
 
 def upload_genetic_data():
-    return upload('file',Gene_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_GENE,'No execl file selected for uploading','Excel file successfully uploaded','Allowed file types are csv files',1)
+    return upload('file',Gene_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_GENE,'No execl file selected for uploading','Allowed file types are csv files',1)
+
+def upload_audio_data():
+    return upload('file2',Audio_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_AUDIO,'No mp3 file selected for uploading','Allowed file types are mp3 files',2)
   
 
 @app.route('/', methods=['GET', 'POST'])
@@ -191,14 +262,71 @@ def Run_Gene():
     else:
         return render_template('index2.html')
     
+@app.route('/Audio', methods=['GET', 'POST'])
+def Run_Audio():
+    if request.method == 'POST':
+        return  upload_audio_data()
+    
+    else:
+        return render_template('index4.html')
+    
 @app.route('/Results', methods=['GET', 'POST'])
 def Run_Results():
         
-        final_label,final_label_probability = combine.combine(MRI_Probabilities,Gene_Probabilities_Label,Gene_Probabilities_max_result_1,Gene_predicted_label,Gene_UPLOAD_FOLDER,Gene_filename)
-        return render_template('index3.html',final_label = final_label,final_label_probability = round(final_label_probability,2)*100,gene_predicted_label = Gene_predicted_label,gene_probability = Gene_Probabilities_Label*100,
-                               mri_label = MRI_label,mri_probability = MRI_combined_probability, mri_label_sagittal = MRI_label_sagittal, mri_probability_sagittal = MRI_probability_sagittal,
-                               mri_label_coronal = MRI_label_coronal, mri_probability_coronal = MRI_probability_coronal,mri_label_axial = MRI_label_axial, mri_probability_axial = MRI_probability_axial,
+        final_label,final_array_probability = combine.combine(MRI_all_Probabilities,Gene_all_probabilities,Audio_all_probabilities)
+
+        if(final_label != 0):
+            AD_probability,CN_probability,MCI_probability = get_label_probability(final_array_probability)
+
+        else:
+            AD_probability = 0 
+            CN_probability = 0 
+            MCI_probability = 0
+
+        return render_template('index3.html',final_label = final_label,final_AD_probability = round(AD_probability,2)*100,
+                               final_CN_probability = round(CN_probability,2)*100,final_MCI_probability = round(MCI_probability,2)*100,
+
+                               gene_predicted_label = Gene_predicted_label,gene_AD_probability = round(Gene_AD_probability,2)*100,
+                               gene_CN_probability = round(Gene_CN_probability,2)*100,gene_MCI_probability = round(Gene_MCI_probability,2)*100,
+
+                               audio_label = Audio_predicted_label, audio_AD_probability = round(Audio_AD_probability,2)*100, 
+                               audio_CN_probability = round(Audio_CN_probability,2)*100,audio_MCI_probability = round(Audio_MCI_probability,2)*100,
+
+                               mri_label = MRI_label,mri_AD_probability = round(MRI_AD_probability,2)*100,
+                               mri_CN_probability = round(MRI_CN_probability,2)*100,mri_MCI_probability = round(MRI_MCI_probability,2)*100,
+
+                               mri_label_sagittal = MRI_label_sagittal, mri_probability_sagittal = MRI_probability_sagittal,
+                               mri_label_coronal = MRI_label_coronal, mri_probability_coronal = MRI_probability_coronal,
+                               mri_label_axial = MRI_label_axial, mri_probability_axial = MRI_probability_axial,
                                sagittal_image = sagittal_image, coronal_image = coronal_image,axial_image=axial_image)
+
+@app.route('/clear_session')
+def clear_session():
+    session.clear()
+
+    global MRI_label
+    MRI_label = ""
+    global MRI_all_Probabilities
+    MRI_all_Probabilities = []
+
+    global MRI_label_sagittal
+    MRI_label_sagittal = "" 
+    global MRI_label_coronal
+    MRI_label_coronal = ""
+    global MRI_label_axial
+    MRI_label_axial = " "
+
+    global Gene_predicted_label
+    Gene_predicted_label = ""
+    global Gene_all_probabilities
+    Gene_all_probabilities = []
+
+    global Audio_predicted_label
+    Audio_predicted_label = ""
+    global Audio_all_probabilities
+    Audio_all_probabilities = []
+
+    return redirect(url_for('Run_MRI'))
 
 if __name__ == '__main__':
     app.run(debug=True)

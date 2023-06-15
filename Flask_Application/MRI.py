@@ -52,7 +52,6 @@ def get_average_label(iteration_loop,index_label,pred_proba_axial,pred_proba_cor
     proba_sagittal = pred_proba_sagittal[iteration_loop][index_label]
     
     label_proba = (proba_axial + proba_coronal + proba_sagittal)/3
-    label_proba = round(label_proba,2)
     return label_proba
 
 def vote(pred_proba_axial,pred_proba_coronal,pred_proba_sagittal):
@@ -94,7 +93,7 @@ def predict_label_all_models (image_array_sagittal,image_array_coronal,image_arr
     #get label with maximum probability across the three models
     predict_voting,max_probability,all_probabilities = vote(all_probability_axial,all_probability_coronal,all_probability_sagittal)
 
-    return get_label(sagittal_label[0]),probability_sagittal,get_label(coronal_label[0]),probability_coronal,get_label(axial_label[0]),probability_axial,get_label(predict_voting[0]), max_probability,all_probabilities
+    return get_label(sagittal_label[0]),probability_sagittal,get_label(coronal_label[0]),probability_coronal,get_label(axial_label[0]),probability_axial,get_label(predict_voting[0]), all_probabilities
 
 def Append_image_resize(segments_folder,filename):
     image_array_sagittal=[]
@@ -115,8 +114,8 @@ def Append_image_resize(segments_folder,filename):
     image_array_coronal = np.array(image_array_coronal)
     image_array_axial = np.array(image_array_axial)
 
-    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities = predict_label_all_models(image_array_sagittal,image_array_coronal,image_array_axial)
-    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities
+    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities = predict_label_all_models(image_array_sagittal,image_array_coronal,image_array_axial)
+    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities
 
 def RGB_Segmentation(skull_stripped_folder,filename):
     #load images
@@ -145,6 +144,7 @@ def RGB_Segmentation(skull_stripped_folder,filename):
     segments_dst_path = 'F:/Graduation Project/Flask/static/Segments/'
 
     for i in range(len(imageArray_afterClipping)):
+        plt.switch_backend('agg')
         for j in range(3):
             if j == 0:
                 rotated_img = ndimage.rotate(imageArray_afterClipping[i][imageArray_afterClipping.shape[1]//2, :,:], 270)
@@ -170,8 +170,8 @@ def RGB_Segmentation(skull_stripped_folder,filename):
                 plt.savefig(os.path.join(segments_dst_path,img_name),orientation = 'portrait',transparent = True, bbox_inches = 'tight',pad_inches=0)
                 #plt.show()
 
-    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities = Append_image_resize(segments_dst_path,filename)
-    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities
+    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities = Append_image_resize(segments_dst_path,filename)
+    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities
 
 '''def skull_strip_nii(input_file, output_file, frac=0.3):
     
@@ -187,8 +187,8 @@ def apply_skull_stripping(registration_folder_path, filename):
     
     destination_images_skullstripping="/home/farah/Documents/softwareApp/skullstripped_images/"
     skull_strip_nii((os.path.join(registration_folder_path,filename)),(os.path.join(destination_images_skullstripping,filename)),frac=0.35)
-    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities = RGB_Segmentation(destination_images_skullstripping,filename)
-    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities
+    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities = RGB_Segmentation(destination_images_skullstripping,filename)
+    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities
 
 
 def registration(src_path, dst_path, ref_path, dst_path_mat):
@@ -225,8 +225,8 @@ def apply_registration(normalized_folder_path,filename):
     registration((os.path.join(normalized_folder_path,filename)),os.path.join(image_registeration_folder,filename),ref_image_R,(os.path.join(dst_path_mat,matrix_file)))
     print((os.path.join(normalized_folder_path,filename)))
     print((os.path.join(image_registeration_folder,filename)))
-    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities = apply_skull_stripping(image_registeration_folder, filename)
-    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities'''
+    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities = apply_skull_stripping(image_registeration_folder, filename)
+    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities'''
 
 def resample_img(image_sitk, out_spacing=[1.0, 1.0, 1.0], out_direction= (1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0), out_origin=[0,0,0]):
 
@@ -275,9 +275,9 @@ def Normalization(UPLOAD_FOLDER,filename):
     nift_fileImgs_N.append(nib.Nifti1Image(convertImages_N[0],affine = np.eye(4)))
     nib.save(nift_fileImgs_N[0], normalize_folder + filename)
     print(filename)
-    #result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities = apply_registration(normalize_folder,filename)
-    #return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities
-    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities= RGB_Segmentation(normalize_folder,filename)
-    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label, combined_probability,all_probabilities
+    #result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities = apply_registration(normalize_folder,filename)
+    #return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities
+    result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities= RGB_Segmentation(normalize_folder,filename)
+    return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities
 
 
