@@ -93,13 +93,17 @@ def classify(upload_folder,file_name):
      print("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg")
      print(predict_voting_1[0])
      print(result_probability_1)
-     print(pred_label_rf_2[0])
-     print(probability_2)
      
 
      array_probabilities = []
      
      if predict_voting_1[0] == 1:
+         
+         pred_label_rf_2,rf_2_probability_array = predict_label(rf_2,features,1)
+         probability_2 = rf_2_probability_array[0][pred_label_rf_2[0]]
+
+         print(pred_label_rf_2[0])
+         print(probability_2)
          
          max_result_probability_2 = (result_probability_1)*(probability_2/(probability_2+(1-probability_2)))
          min_result_probability_2 = (result_probability_1)*((1-probability_2)/(probability_2+(1-probability_2)))
@@ -129,24 +133,10 @@ def classify(upload_folder,file_name):
     
      elif predict_voting_1[0] == 0:
          
-         max_result_probability_2 = (1-result_probability_1)*(probability_2/(probability_2+(1-probability_2)))
-         min_result_probability_2 = (1-result_probability_1)*((1-probability_2)/(probability_2+(1-probability_2)))
-
-         print(max_result_probability_2)
-         print(min_result_probability_2)
-
-         if pred_label_rf_2[0] == 0:
-             probability_AD = min_result_probability_2
-             probability_MCI = max_result_probability_2
-
-         elif pred_label_rf_2[0] ==1:
-             probability_AD = max_result_probability_2
-             probability_MCI = min_result_probability_2
-             
-         array_probabilities.append(probability_AD)
+         array_probabilities.append(1-result_probability_1)
          array_probabilities.append(result_probability_1)
-         array_probabilities.append(probability_MCI)
 
+         print("DDDDD")
          print(array_probabilities)
 
          return "CN",array_probabilities

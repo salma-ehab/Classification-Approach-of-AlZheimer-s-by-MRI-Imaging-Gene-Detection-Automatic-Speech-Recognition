@@ -37,10 +37,14 @@ def get_label(index):
 def classify(audio_csv_with_embeddings):
 
     prev_df = pd.read_csv(audio_csv_with_embeddings)
+    print("LLLLLLLLLLLLLLLLll")
+    print(prev_df)
     new_df = prev_df.drop(["Filename", "Transcription"], axis=1)
+    print("LLLLLLLLLLLLLLLLll")
+    print(new_df)
     features =  new_df
 
-    xgb_audio = joblib.load("F:/Graduation Project/Flask/Classifiers/XGB_Audios.pkl")
+    xgb_audio = joblib.load("F:/Graduation Project/Flask/Classifiers/XGB_Audios_new.pkl")
     predict_label = xgb_audio.predict(features)
     predict_probabilities = xgb_audio.predict_proba(features)
 
@@ -59,7 +63,7 @@ def perform_embeddings(audio_csv):
 
     df = pd.read_csv(audio_csv, index_col=0)
 
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     df["embedding"] = df.Transcription.apply(lambda x: get_embedding(x, engine=embedding_model))
     embeddings_df = df["embedding"].apply(lambda x: pd.Series(x, dtype=float)).add_prefix("embedding")
@@ -83,6 +87,7 @@ def load_model():
     
 def calculate_ttr(transcription):
     words = transcription.split()
+    #print (words)
     num_words = len(words)
     unique_words = len(set(words))
     ttr = unique_words / num_words
@@ -91,19 +96,21 @@ def calculate_ttr(transcription):
 def calculate_sdi(transcription):
     words = transcription.split()
     word_counts = Counter(words)
+    #print(word_counts)
     num_words = len(words)
     sdi = 1 - sum((count / num_words) ** 2 for count in word_counts.values())
     return sdi
 
 def detect_pauses(audio_file, sr, min_pause_duration=0.5):
     # Load audio file
-    audio, _ = librosa.load(audio_file, sr=sr)
+    audio, sr = librosa.load(audio_file, sr=sr)
     
     # Convert audio to mono if it has multiple channels
     if len(audio.shape) > 1:
         audio = np.mean(audio, axis=1)
     
     # Apply voice activity detection (VAD) or other methods to segment speech
+    
     # Example using librosa VAD
     speech_segments = librosa.effects.split(audio, top_db=20)
     
@@ -126,28 +133,35 @@ def detect_pauses(audio_file, sr, min_pause_duration=0.5):
     return pause_rate 
 
 def calculate_syntactic_complexity(transcription):
-    words = transcription.split()
-    sentence = ' '.join(words)
+    sentences = transcription.split('.')  # Split text into sentences assuming period (.) as the sentence delimiter
+    num_sentences = len(sentences)
+    
     total_clauses = 0
-    num_words = len(words) 
-    average_sentence_length = num_words / len(sentence)
-    #print(average_sentence_length)
+    num_words = 0
+    for sentence in sentences:
+        words = sentence.split()
+        num_words += len(words)
+        
+        tagger = SequenceTagger.load('pos')
+        line = Sentence(sentence)
+        tagger.predict(line)
+        pos_tags = [(token.text, token.labels[0].value) for token in line]
+
+        num_clauses = 0
+        for i in range(len(pos_tags)-1):
+            current_tag = pos_tags[i][1]
+            next_tag = pos_tags[i+1][1]
+            if current_tag.startswith('V') and next_tag not in ['.', ':', 'IN']:
+                num_clauses += 1
+        total_clauses += num_clauses
     
-    tagger = SequenceTagger.load('pos')
-    line = Sentence(transcription)
-    tagger.predict(line)
-    pos_tags = [(token.text, token.labels[0].value) for token in line]
-    
-    #print(pos_tags)
-    num_clauses = 0
-    for i in range(len(pos_tags)-1):
-        current_tag = pos_tags[i][1]
-        next_tag = pos_tags[i+1][1]
-        if current_tag.startswith('V') and next_tag not in ['.', ':', 'IN']:
-            num_clauses += 1
-    total_clauses += num_clauses
-    average_clauses_per_sentence = total_clauses / num_words
-    
+    average_sentence_length = num_words / num_sentences
+    average_clauses_per_sentence = total_clauses / num_sentences
+
+    #print(num_words)
+    #print(num_sentences)
+    #print(total_clauses)
+
     return average_sentence_length, average_clauses_per_sentence
 
 def perform_transcription(upload_folder,filename):
@@ -158,29 +172,33 @@ def perform_transcription(upload_folder,filename):
     output_file = os.path.join(audio_csv_file_directory,audio_csv_file_name)
 
 
-    # Open the CSV file for writing
     with open(output_file, 'w', newline='') as csvfile:
         csv_writer = csv.writer(csvfile)
         csv_writer.writerow(["Filename", "Transcription", "Speech Rate", "Pause Rate", "Lexical Diversity(SDI Score)", "Syntactic Complexity(Avg Clauses per)"])
+
+        # Display Audio
+        audio_display = Audio(audio_file)
+        IPython.display.display(audio_display)
 
         # Perform Transcription
         model = load_model()
         transcription_dict = model.transcribe(audio_file)
         transcription_text = transcription_dict['text']
-        
+        print(transcription_text)
 
         #perform 4 features of alzheimers
         #get Segements and Number of words
         segments = transcription_dict["segments"]
         num_words = len(transcription_text.split())
-
+        #print(f"Transcription for {m}: {transcription_text}\n")
+ 
         #Calculate speech rate
         audio_info = sf.info(audio_file)
         duration = audio_info.duration
         sample_rate = audio_info.samplerate
         frame_duration = 0.01
         num_frames = int(duration * sample_rate / frame_duration)
-
+ 
         #The formula calculates the average number of words spoken per second 
         #based on the number of words in the transcription and the duration of the audio file.
         speech_rate = num_words / (num_frames / sample_rate)
@@ -189,7 +207,7 @@ def perform_transcription(upload_folder,filename):
         #Lexical diversity using TTR 
         ttr_score = calculate_ttr(transcription_text)
         print("TTR Score:", ttr_score)
-
+    
         #Lexical diversity using sdi 
         sdi_score = calculate_sdi(transcription_text)
         print("SDI Score:", sdi_score)
@@ -197,20 +215,31 @@ def perform_transcription(upload_folder,filename):
         #Pause Rate 
         pauses = detect_pauses(audio_file,sr=sample_rate)
         print("Pause:", pauses)
-
+    
         #Syntactic Complexity:
         avg_sentence_length, avg_clauses_per_sentence = calculate_syntactic_complexity(transcription_text)
         print("Average Sentence Length:", avg_sentence_length)
         print("Average Clauses per Sentence:", avg_clauses_per_sentence)
-
+        
         # Write the filename, transcription, and features to the CSV file
-        csv_writer.writerow([os.path.basename(audio_file), transcription_text, speech_rate, pauses, sdi_score, avg_clauses_per_sentence])
-
+        csv_writer.writerow([os.path.basename(audio_file), transcription_text,speech_rate, pauses, sdi_score, avg_clauses_per_sentence])
+    
     predict_label,predict_probabilities = perform_embeddings(output_file)
     return predict_label,predict_probabilities
 
 
+        
+   
 
+    
+   
+    
+   
+    
+    
+  
+    
+    
 
 
 

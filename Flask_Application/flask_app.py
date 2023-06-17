@@ -14,15 +14,22 @@ MRI_UPLOAD_FOLDER = 'F:/Graduation Project/Flask/MRI_Uploads/'
 Gene_UPLOAD_FOLDER = 'F:/Graduation Project/Flask/Gene_Uploads/'
 Audio_UPLOAD_FOLDER ='F:/Graduation Project/Flask/Audio_Uploads/'
 app.secret_key = "MRI-flask" #for browser cookies for security.
-ALLOWED_EXTENSIONS_MRI = set(['nii'])
-ALLOWED_EXTENSIONS_GENE = set(['csv'])
-ALLOWED_EXTENSIONS_AUDIO = set(['mp3'])
+array_mri_extension = []
+array_gene_extension = []
+array_audio_extension = []
+array_mri_extension.append(set(['nii']))
+array_gene_extension.append(set(['csv']))
+array_audio_extension.append(set(['mp3']))
+array_audio_extension.append(set(['wav']))
 
-Gene_predicted_label = ""
+
+Gene_predicted_label_1 = ""
+Gene_pl=""
 Gene_all_probabilities = []
 Gene_AD_probability = 0
 Gene_CN_probability = 0
 Gene_MCI_probability = 0
+Gene_AD_MCI_probability = 0
 
 Audio_predicted_label = ""
 Audio_all_probabilities = []
@@ -50,8 +57,11 @@ coronal_image = ""
 axial_image = ""
 
 def allowed_file(filename,allowed_extensions): #boolean, for extensions
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
-
+    flag = False
+    for i in range(len(allowed_extensions)):
+         if '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions[i]:
+             flag = True
+    return flag
 
 def get_age(birth_year,birth_month,birth_day):
 
@@ -181,12 +191,32 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,allowed
                  gender = request.form['gender']
             
                  gene_predicted_label,gene_all_probabilities = Gene.filtering(upload_folder,filename,age,gender)
+                 
 
-                 AD_probability,CN_probability,MCI_probability = get_label_probability(gene_all_probabilities)
+                 if gene_predicted_label !="CN":
+                     AD_probability,CN_probability,MCI_probability = get_label_probability(gene_all_probabilities)
+                     gene_predicted_label = "empty"
+                     gene_predicted_label_1,max_prob = Gene.max_of_three_indices(gene_all_probabilities)
+                     gene_predicted_label_1 = MRI.get_label(gene_predicted_label_1)
+                     AD_MCI_probability = 0
+
+                 elif gene_predicted_label =="CN":
+                     print("GGGGGGg")
+                     AD_MCI_probability = gene_all_probabilities[0] 
+                     CN_probability =  gene_all_probabilities[1] 
+                     AD_probability = 0
+                     MCI_probability = 0
+                     gene_predicted_label_1 = "empty"
+
+                
+                 print("KKKK")
+                 print(gene_predicted_label_1)
 
 
-                 global Gene_predicted_label
-                 Gene_predicted_label = gene_predicted_label
+                 global Gene_predicted_label_1
+                 Gene_predicted_label_1 =  gene_predicted_label_1
+                 global Gene_pl
+                 Gene_pl = gene_predicted_label
                  global Gene_all_probabilities
                  Gene_all_probabilities = gene_all_probabilities
                  global Gene_AD_probability
@@ -195,8 +225,10 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,allowed
                  Gene_CN_probability = CN_probability
                  global Gene_MCI_probability
                  Gene_MCI_probability = MCI_probability
+                 global Gene_AD_MCI_probability
+                 Gene_AD_MCI_probability = AD_MCI_probability
 
-                 return render_template('index2.html',year = year, month = month,day=day,gender=gender,predicted_label = gene_predicted_label,AD_probability = round(AD_probability,2)*100,CN_probability = round(CN_probability,2)*100,MCI_probability = round(MCI_probability,2)*100)
+                 return render_template('index2.html',year = year, month = month,day=day,gender=gender,predicted_label = gene_predicted_label,gene_predicted_label_1 = gene_predicted_label_1,AD_probability = round(AD_probability,2)*100,CN_probability = round(CN_probability,2)*100,MCI_probability = round(MCI_probability,2)*100,AD_MCI_probability = round(AD_MCI_probability,2)*100)
              
              
              elif check_type ==2:
@@ -237,13 +269,13 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,allowed
                
 
 def upload_img():
-    return upload('file1',MRI_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_MRI,'No image selected for uploading','Allowed image types are nii files',0)
+    return upload('file1',MRI_UPLOAD_FOLDER,array_mri_extension,'No image selected for uploading','Allowed image types are nii files',0)
 
 def upload_genetic_data():
-    return upload('file',Gene_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_GENE,'No execl file selected for uploading','Allowed file types are csv files',1)
+    return upload('file',Gene_UPLOAD_FOLDER,array_gene_extension,'No execl file selected for uploading','Allowed file types are csv files',1)
 
 def upload_audio_data():
-    return upload('file2',Audio_UPLOAD_FOLDER,ALLOWED_EXTENSIONS_AUDIO,'No mp3 file selected for uploading','Allowed file types are mp3 files',2)
+    return upload('file2',Audio_UPLOAD_FOLDER,array_audio_extension,'No mp3 or wav file selected for uploading','Allowed file types are mp3 or wav files',2)
   
 
 @app.route('/', methods=['GET', 'POST'])
@@ -273,20 +305,43 @@ def Run_Audio():
 @app.route('/Results', methods=['GET', 'POST'])
 def Run_Results():
         
-        final_label,final_array_probability = combine.combine(MRI_all_Probabilities,Gene_all_probabilities,Audio_all_probabilities)
+        hide_gene_flag = False
+        final_label,final_array_probability = combine.combine(MRI_all_Probabilities,Gene_all_probabilities,Gene_pl,Audio_all_probabilities)
 
-        if(final_label != 0):
-            AD_probability,CN_probability,MCI_probability = get_label_probability(final_array_probability)
+        print("hhh")
+        print(final_label)
+        print(Gene_pl)
 
-        else:
+        if (type(final_array_probability) == int):
+            flag_AD_MCI = 0
             AD_probability = 0 
             CN_probability = 0 
             MCI_probability = 0
+            AD_MCI_probability = 0
 
+        else:
+            if final_label !="CN" and Gene_pl == "CN":
+                hide_gene_flag = True
+
+            if (final_label != 0 and len(final_array_probability) !=2):
+
+                AD_probability,CN_probability,MCI_probability = get_label_probability(final_array_probability)
+                flag_AD_MCI = 0
+                AD_MCI_probability = 0
+
+            elif len(final_array_probability) ==2 and final_label == "CN":
+                flag_AD_MCI = 1
+                AD_MCI_probability = final_array_probability [0]
+                CN_probability = final_array_probability [1]
+                AD_probability = 0 
+                MCI_probability = 0
+
+
+        print("skls",hide_gene_flag)
         return render_template('index3.html',final_label = final_label,final_AD_probability = round(AD_probability,2)*100,
                                final_CN_probability = round(CN_probability,2)*100,final_MCI_probability = round(MCI_probability,2)*100,
 
-                               gene_predicted_label = Gene_predicted_label,gene_AD_probability = round(Gene_AD_probability,2)*100,
+                               gene_predicted_label = Gene_pl,gene_AD_probability = round(Gene_AD_probability,2)*100,
                                gene_CN_probability = round(Gene_CN_probability,2)*100,gene_MCI_probability = round(Gene_MCI_probability,2)*100,
 
                                audio_label = Audio_predicted_label, audio_AD_probability = round(Audio_AD_probability,2)*100, 
@@ -298,7 +353,10 @@ def Run_Results():
                                mri_label_sagittal = MRI_label_sagittal, mri_probability_sagittal = MRI_probability_sagittal,
                                mri_label_coronal = MRI_label_coronal, mri_probability_coronal = MRI_probability_coronal,
                                mri_label_axial = MRI_label_axial, mri_probability_axial = MRI_probability_axial,
-                               sagittal_image = sagittal_image, coronal_image = coronal_image,axial_image=axial_image)
+                               sagittal_image = sagittal_image, coronal_image = coronal_image,axial_image=axial_image,
+                               
+                               flag_AD_MCI = flag_AD_MCI,final_AD_MCI_probability = round(AD_MCI_probability,2)*100,gene_AD_MCI_probability = round(Gene_AD_MCI_probability,2)*100,
+                               Gene_predicted_label_1 = Gene_predicted_label_1,hide_gene_flag = hide_gene_flag)
 
 @app.route('/clear_session')
 def clear_session():
@@ -316,8 +374,10 @@ def clear_session():
     global MRI_label_axial
     MRI_label_axial = " "
 
-    global Gene_predicted_label
-    Gene_predicted_label = ""
+    global Gene_predicted_label_1
+    Gene_predicted_label_1 = ""
+    global Gene_pl
+    Gene_pl = ""
     global Gene_all_probabilities
     Gene_all_probabilities = []
 

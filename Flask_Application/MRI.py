@@ -147,15 +147,15 @@ def RGB_Segmentation(skull_stripped_folder,filename):
         plt.switch_backend('agg')
         for j in range(3):
             if j == 0:
-                rotated_img = ndimage.rotate(imageArray_afterClipping[i][imageArray_afterClipping.shape[1]//2, :,:], 270)
+                rotated_img = ndimage.rotate(imageArray_afterClipping[i][imageArray_afterClipping.shape[1]//2, :,:], 180)
                 plt.imshow(rotated_img)
-                img_name = "Sagittal " + get_image_name(filename)
+                img_name = "Axial " + get_image_name(filename)
                 plt.axis('off')
                 plt.savefig(os.path.join(segments_dst_path,img_name),orientation = 'portrait',transparent = True, bbox_inches = 'tight',pad_inches=0)
                 #plt.show()
 
             if j == 1:
-                rotated_img = ndimage.rotate(imageArray_afterClipping[i][:,imageArray_afterClipping.shape[2]//2, :], 270)
+                rotated_img = ndimage.rotate(imageArray_afterClipping[i][:,imageArray_afterClipping.shape[2]//2, :], 360)
                 plt.imshow(rotated_img)
                 img_name = "Coronal "+ get_image_name(filename)
                 plt.axis('off')
@@ -163,9 +163,9 @@ def RGB_Segmentation(skull_stripped_folder,filename):
                 #plt.show()
 
             if j == 2:
-                rotated_img = ndimage.rotate(imageArray_afterClipping[i][:, :,imageArray_afterClipping.shape[3]//2],90)
+                rotated_img = ndimage.rotate(imageArray_afterClipping[i][:, :,imageArray_afterClipping.shape[3]//2],360)
                 plt.imshow(rotated_img)
-                img_name = "Axial "+ get_image_name(filename)
+                img_name = "Sagittal "+ get_image_name(filename)
                 plt.axis('off')
                 plt.savefig(os.path.join(segments_dst_path,img_name),orientation = 'portrait',transparent = True, bbox_inches = 'tight',pad_inches=0)
                 #plt.show()
