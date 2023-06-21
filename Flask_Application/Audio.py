@@ -37,20 +37,16 @@ def get_label(index):
 def classify(audio_csv_with_embeddings):
 
     prev_df = pd.read_csv(audio_csv_with_embeddings)
-    print("LLLLLLLLLLLLLLLLll")
-    print(prev_df)
     new_df = prev_df.drop(["Filename", "Transcription"], axis=1)
-    print("LLLLLLLLLLLLLLLLll")
-    print(new_df)
     features =  new_df
 
     xgb_audio = joblib.load("F:/Graduation Project/Flask/Classifiers/XGB_Audios_new.pkl")
     predict_label = xgb_audio.predict(features)
     predict_probabilities = xgb_audio.predict_proba(features)
 
-    print("AAAAAAAAAAAAAAAA")
-    print(predict_label)
-    print(predict_probabilities)
+   
+    print("The list of probabilities as predicted by Audio approach:",predict_probabilities)
+
 
     return get_label(predict_label),predict_probabilities[0]
 
@@ -63,7 +59,7 @@ def perform_embeddings(audio_csv):
 
     df = pd.read_csv(audio_csv, index_col=0)
 
-    openai.api_key = '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'
+    openai.api_key = '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'
 
     df["embedding"] = df.Transcription.apply(lambda x: get_embedding(x, engine=embedding_model))
     embeddings_df = df["embedding"].apply(lambda x: pd.Series(x, dtype=float)).add_prefix("embedding")

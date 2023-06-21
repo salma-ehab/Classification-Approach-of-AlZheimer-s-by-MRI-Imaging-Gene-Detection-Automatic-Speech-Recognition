@@ -84,15 +84,15 @@ def classify(upload_folder,file_name):
      pred_label_svr_1,svr_1_probability_array = predict_label(svr_1,features,0)
      pred_label_rf_1,rf_1_probability_array= predict_label(rf_1,features,1)
 
+     print("The list of probabilities as predicted by SVR in first step of Gene approach:",svr_1_probability_array)
+     print("The list of probabilities as predicted by RF in first step of Gene approach:",rf_1_probability_array)
+
      predict_voting_1,result_probability_1 = voting(svr_1_probability_array,rf_1_probability_array)
 
-     pred_label_rf_2,rf_2_probability_array = predict_label(rf_2,features,1)
-     probability_2 = rf_2_probability_array[0][pred_label_rf_2[0]]
-     
 
-     print("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg")
-     print(predict_voting_1[0])
-     print(result_probability_1)
+     print("The label chosen by first step of Gene approach:",predict_voting_1[0])
+     print("The probability of the label chosen by first step of Gene approach:",result_probability_1)
+
      
 
      array_probabilities = []
@@ -102,14 +102,17 @@ def classify(upload_folder,file_name):
          pred_label_rf_2,rf_2_probability_array = predict_label(rf_2,features,1)
          probability_2 = rf_2_probability_array[0][pred_label_rf_2[0]]
 
-         print(pred_label_rf_2[0])
-         print(probability_2)
+         print("The label chosen by second step of Gene approach:",pred_label_rf_2[0])
+         print("The probability of the label chosen by second step of Gene approach:",probability_2)
+
+         
          
          max_result_probability_2 = (result_probability_1)*(probability_2/(probability_2+(1-probability_2)))
          min_result_probability_2 = (result_probability_1)*((1-probability_2)/(probability_2+(1-probability_2)))
 
-         print(max_result_probability_2)
-         print(min_result_probability_2)
+         print("The probability of the label chosen by second step of Gene approach given that class AD_MCI was chosen in first step:",max_result_probability_2)
+         print("The probability of the label not chosen by second step of Gene approach given that class AD_MCI was chosen in first step:",min_result_probability_2)
+
 
          if pred_label_rf_2[0] == 0:
              
@@ -117,7 +120,7 @@ def classify(upload_folder,file_name):
              array_probabilities.append(1-result_probability_1)
              array_probabilities.append(max_result_probability_2)
 
-             print(array_probabilities)
+             print("The list of probabilities as predicted by Gene approach:",array_probabilities)
 
              return "MCI",array_probabilities
          
@@ -127,7 +130,7 @@ def classify(upload_folder,file_name):
              array_probabilities.append(1-result_probability_1)
              array_probabilities.append(min_result_probability_2)
 
-             print(array_probabilities)
+             print("The list of probabilities as predicted by Gene approach:",array_probabilities)
 
              return "AD",array_probabilities
     
@@ -136,8 +139,10 @@ def classify(upload_folder,file_name):
          array_probabilities.append(1-result_probability_1)
          array_probabilities.append(result_probability_1)
 
-         print("DDDDD")
-         print(array_probabilities)
+         print("Probability of CN:",round(result_probability_1,2))
+         print("Probability of AD-MCI:",round(1-result_probability_1,2))
+
+         print("The list of probabilities as predicted by Gene approach:",array_probabilities)
 
          return "CN",array_probabilities
          

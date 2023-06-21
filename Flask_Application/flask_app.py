@@ -21,6 +21,7 @@ array_mri_extension.append(set(['nii']))
 array_gene_extension.append(set(['csv']))
 array_audio_extension.append(set(['mp3']))
 array_audio_extension.append(set(['wav']))
+array_audio_extension.append(set(['csv']))
 
 
 Gene_predicted_label_1 = ""
@@ -201,16 +202,11 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,allowed
                      AD_MCI_probability = 0
 
                  elif gene_predicted_label =="CN":
-                     print("GGGGGGg")
                      AD_MCI_probability = gene_all_probabilities[0] 
                      CN_probability =  gene_all_probabilities[1] 
                      AD_probability = 0
                      MCI_probability = 0
                      gene_predicted_label_1 = "empty"
-
-                
-                 print("KKKK")
-                 print(gene_predicted_label_1)
 
 
                  global Gene_predicted_label_1
@@ -232,8 +228,8 @@ def upload(file_name,upload_folder,allowed_extensions,empty_file_message,allowed
              
              
              elif check_type ==2:
-                 
-                 audio_predicted_label,predict_probabilities = Audio.perform_transcription(upload_folder,filename)
+                 #audio_predicted_label,predict_probabilities = Audio.perform_transcription(upload_folder,filename)
+                 audio_predicted_label,predict_probabilities = Audio.perform_embeddings(os.path.join(upload_folder,filename))
                  AD_probability,CN_probability,MCI_probability = get_label_probability(predict_probabilities)
 
                  global Audio_predicted_label
@@ -308,10 +304,6 @@ def Run_Results():
         hide_gene_flag = False
         final_label,final_array_probability = combine.combine(MRI_all_Probabilities,Gene_all_probabilities,Gene_pl,Audio_all_probabilities)
 
-        print("hhh")
-        print(final_label)
-        print(Gene_pl)
-
         if (type(final_array_probability) == int):
             flag_AD_MCI = 0
             AD_probability = 0 
@@ -336,8 +328,6 @@ def Run_Results():
                 AD_probability = 0 
                 MCI_probability = 0
 
-
-        print("skls",hide_gene_flag)
         return render_template('index3.html',final_label = final_label,final_AD_probability = round(AD_probability,2)*100,
                                final_CN_probability = round(CN_probability,2)*100,final_MCI_probability = round(MCI_probability,2)*100,
 

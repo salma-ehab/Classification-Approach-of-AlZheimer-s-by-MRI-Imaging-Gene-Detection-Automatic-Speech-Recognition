@@ -12,7 +12,6 @@ from keras.models import load_model
 
 
 def get_image_name(filename): #for keeping filename regardless extension 
-    print  (filename.rsplit('.', 1)[0].lower())
     return filename.rsplit('.', 1)[0].lower() 
 
 def maxProbability(arr):
@@ -43,7 +42,6 @@ def get_label(index):
         return 'CN'
     if index == 2:
         return 'MCI'
-    
 
 def get_average_label(iteration_loop,index_label,pred_proba_axial,pred_proba_coronal,pred_proba_sagittal):
     
@@ -52,12 +50,13 @@ def get_average_label(iteration_loop,index_label,pred_proba_axial,pred_proba_cor
     proba_sagittal = pred_proba_sagittal[iteration_loop][index_label]
     
     label_proba = (proba_axial + proba_coronal + proba_sagittal)/3
+    label_proba = round(label_proba,2)
     return label_proba
+    
 
 def vote(pred_proba_axial,pred_proba_coronal,pred_proba_sagittal):
-    
-    predict_voting = []
-    for i in range (len(pred_proba_axial)):
+
+    for i in range(len(pred_proba_axial)):
         array_label = []
         AD_label_proba = get_average_label(i,0,pred_proba_axial,pred_proba_coronal,pred_proba_sagittal)
         CN_label_proba = get_average_label(i,1,pred_proba_axial,pred_proba_coronal,pred_proba_sagittal)
@@ -66,10 +65,47 @@ def vote(pred_proba_axial,pred_proba_coronal,pred_proba_sagittal):
         array_label.append(CN_label_proba)
         array_label.append(MCI_label_proba)
     
-        max_index,max_probability= max_of_three_indices(array_label)
-        predict_voting.append(max_index)
+        max_index,max_item = max_of_three_indices(array_label)
         
-    return predict_voting,max_probability,array_label
+    return max_index,max_item,array_label
+
+
+def vote_with_weight(pred_proba_axial,pred_proba_coronal,pred_proba_sagittal):
+
+    '''axial_acc_seed_1 = 83.33
+    coronal_acc_seed_1 = 70
+    sagittal_acc_seed_1 = 60
+    sum_acc = axial_acc_seed_1 + coronal_acc_seed_1+ sagittal_acc_seed_1
+
+    axial_weight = axial_acc_seed_1/sum_acc
+    coronal_weight = coronal_acc_seed_1/sum_acc
+    sagittal_weight = sagittal_acc_seed_1/sum_acc
+    print("The axial model weight is: ",axial_weight)
+    print("The coronal model weight is: ",coronal_weight)
+    print("The sagittal model weight is: ",sagittal_weight)'''
+
+    axial_acc_seed_2 = 86.67
+    coronal_acc_seed_2= 66.67
+    sagittal_acc_seed_2= 63.33
+    sum_acc = axial_acc_seed_2 + coronal_acc_seed_2+ sagittal_acc_seed_2
+
+    axial_weight = axial_acc_seed_2/sum_acc
+    coronal_weight = coronal_acc_seed_2/sum_acc
+    sagittal_weight = sagittal_acc_seed_2/sum_acc
+    print("The axial model weight is: ",axial_weight)
+    print("The coronal model weight is: ",coronal_weight)
+    print("The sagittal model weight is: ",sagittal_weight)
+
+    
+    for i in range(len(pred_proba_axial)):
+        array_combined_probabilities = []
+        array_combined_probabilities.append((axial_weight*pred_proba_axial[i][0])+(coronal_weight*pred_proba_coronal[i][0])+(sagittal_weight*pred_proba_sagittal[i][0]))
+        array_combined_probabilities.append((axial_weight*pred_proba_axial[i][1])+(coronal_weight*pred_proba_coronal[i][1])+(sagittal_weight*pred_proba_sagittal[i][1]))
+        array_combined_probabilities.append((axial_weight*pred_proba_axial[i][2])+(coronal_weight*pred_proba_coronal[i][2])+(sagittal_weight*pred_proba_sagittal[i][2]))
+    
+        max_index,max_item = max_of_three_indices(array_combined_probabilities)
+        
+    return max_index,max_item,array_combined_probabilities
 
 def predict_label_model(model,image_view):
 
@@ -80,20 +116,34 @@ def predict_label_model(model,image_view):
 
 def predict_label_all_models (image_array_sagittal,image_array_coronal,image_array_axial):
 
-    #load models
+    #load models seed 1
     sagittal_model = load_model('F:/Graduation Project/Flask/Models/model_sagittal.h5')
     coronal_model= load_model('F:/Graduation Project/Flask/Models/model_coronal.h5')
     axial_model = load_model('F:/Graduation Project/Flask/Models/model_axial.h5')
+
+    #load models seed 2
+    '''sagittal_model = load_model('F:/Graduation Project/Flask/Models/model_sagittal_second_seed.h5')
+    coronal_model= load_model('F:/Graduation Project/Flask/Models/model_coronal_second_seed.h5')
+    axial_model = load_model('F:/Graduation Project/Flask/Models/model_axial_second_seed.h5')'''
+
 
     #predict
     sagittal_label,all_probability_sagittal,probability_sagittal = predict_label_model(sagittal_model,image_array_sagittal)
     coronal_label,all_probability_coronal,probability_coronal = predict_label_model(coronal_model,image_array_coronal)
     axial_label,all_probability_axial,probability_axial = predict_label_model(axial_model,image_array_axial)
 
+    
+    print("The list of probabilities as predicted by sagittal model: ",all_probability_sagittal)
+    print("The list of probabilities as predicted by  coronal model: ",all_probability_coronal)
+    print("The list of probabilities as predicted by  axial model: ",all_probability_axial)
+
     #get label with maximum probability across the three models
     predict_voting,max_probability,all_probabilities = vote(all_probability_axial,all_probability_coronal,all_probability_sagittal)
+    #predict_voting,max_probability,all_probabilities = vote_with_weight(all_probability_axial,all_probability_coronal,all_probability_sagittal)
 
-    return get_label(sagittal_label[0]),probability_sagittal,get_label(coronal_label[0]),probability_coronal,get_label(axial_label[0]),probability_axial,get_label(predict_voting[0]), all_probabilities
+    print("The list of average probabilities of MRI image is:",all_probabilities)
+
+    return get_label(sagittal_label[0]),probability_sagittal,get_label(coronal_label[0]),probability_coronal,get_label(axial_label[0]),probability_axial,get_label(predict_voting), all_probabilities
 
 def Append_image_resize(segments_folder,filename):
     image_array_sagittal=[]
@@ -274,7 +324,6 @@ def Normalization(UPLOAD_FOLDER,filename):
     convertImages_N.append(np.array(resArray_N[0] , dtype=np.float32))
     nift_fileImgs_N.append(nib.Nifti1Image(convertImages_N[0],affine = np.eye(4)))
     nib.save(nift_fileImgs_N[0], normalize_folder + filename)
-    print(filename)
     #result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities = apply_registration(normalize_folder,filename)
     #return result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities
     result_sagittal_label,probability_sagittal,result_coronal_label,probability_coronal,result_axial_label,probability_axial,final_label,all_probabilities= RGB_Segmentation(normalize_folder,filename)
