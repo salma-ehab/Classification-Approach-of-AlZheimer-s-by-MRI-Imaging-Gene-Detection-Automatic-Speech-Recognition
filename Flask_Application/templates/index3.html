@@ -16,6 +16,15 @@
         <table id="result_table">
 
         {% if (mri_label and gene_predicted_label) or (mri_label and audio_label) or (gene_predicted_label and audio_label)%}
+        {% if flag_AD_MCI == 1%}
+        <tr>
+          <td id="final_result"  colspan="4">Final Result: {{"{}".format(final_label)}}</td>
+        </tr>
+
+        <tr>
+          <td><label class="probability">Final AD_MCI probability: {{"{:0.2f}%".format(final_AD_MCI_probability)}}</label></td> 
+          <td><label class="probability">Final CN probability: {{"{:0.2f}%".format(final_CN_probability)}}</label></td> 
+        {% elif flag_AD_MCI == 0 %}
         <tr>
           <td id="final_result"  colspan="4">Final Result: {{"{}".format(final_label)}}</td>
         </tr>
@@ -25,6 +34,7 @@
           <td><label class="probability">Final CN probability: {{"{:0.2f}%".format(final_CN_probability)}}</label></td> 
           <td><label class="probability">Final MCI probability:{{"{:0.2f}%".format(final_MCI_probability)}}</label></td> 
         </tr>
+        {% endif %}
         {% endif %}
 
         {% if audio_label !="" %}
@@ -39,17 +49,29 @@
         </tr>
         {% endif %}
        
-
-        {% if gene_predicted_label !="" %}
+        {% if not hide_gene_flag%}
+        {% if Gene_predicted_label_1 !="" %}
+        {% if Gene_predicted_label_1 !="empty"%}
         <tr>
-            <td id="gene_result" colspan="3">Genetic Result: {{"{}".format(gene_predicted_label)}}</td>
-        </tr>
+          <td id="gene_result" colspan="3">Genetic Result: {{"{}".format(Gene_predicted_label_1)}}</td>
+      </tr>
 
+      <tr>
+        <td><label class="probability">Genetic AD probability: {{"{:0.2f}%".format(gene_AD_probability)}}</label></td>
+        <td><label class="probability">Genetic CN probability: {{"{:0.2f}%".format(gene_CN_probability)}}</label></td>
+        <td><label class="probability">Genetic MCI probability:{{"{:0.2f}%".format(gene_MCI_probability)}}</label></td>
+      </tr>
+        {% elif Gene_predicted_label_1 =="empty" %}
         <tr>
-          <td><label class="probability">Genetic AD probability: {{"{:0.2f}%".format(gene_AD_probability)}}</label></td>
-          <td><label class="probability">Genetic CN probability: {{"{:0.2f}%".format(gene_CN_probability)}}</label></td>
-          <td><label class="probability">Genetic MCI probability:{{"{:0.2f}%".format(gene_MCI_probability)}}</label></td>
-        </tr>
+          <td id="gene_result" colspan="3">Genetic Result: {{"{}".format(gene_predicted_label)}}</td>
+       </tr>
+
+       <tr>
+        <td><label class="probability">Genetic AD_MCI probability: {{"{:0.2f}%".format(gene_AD_MCI_probability)}}</label></td>
+        <td><label class="probability">Genetic CN probability: {{"{:0.2f}%".format(gene_CN_probability)}}</label></td>
+       </tr>
+        {% endif %}
+        {% endif %}
         {% endif %}
 
 
@@ -85,10 +107,16 @@
 
         <br>
 
-        {% if final_label != 0%}
+        {% if final_label == 0 %}
+             <label for="empty" id="empty">{{"No MRI or genetic data or audio was entered"}}</label>
+             <br><br><br><br><br>
+        {% endif %}
+
         <table>
-          <tr>
+        <tr>
+        {% if final_label != 0%}
             <td><button id="download_results">Download Results</button></td>
+        {% endif %}
             <td>
              <form method="get" action="{{ url_for('clear_session') }}">
                 <button type="submit" id="another_diagnosis">Diagnose another patient</button>
@@ -96,11 +124,7 @@
             </td>
           </tr>
        </table>
-       {% endif %}
-
-        {% if final_label == 0 %}
-             <label for="empty" id="empty">{{"No MRI or genetic data or audio was entered"}}</label>
-        {% endif %}
+       
         
 
 </div>

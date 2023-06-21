@@ -123,10 +123,11 @@
     <div id="status-message">{{ "{}" .format(status)}}</div> 
 
 
-    {% if predicted_label%}
+    {% if gene_predicted_label_1%}
+    {% if gene_predicted_label_1 != "empty"%}
     <table>
         <tr>
-            <td id="gene_result" colspan="3">Result: {{"The patient's diagnosis is {}".format(predicted_label)}}</td>
+            <td id="gene_result" colspan="3">Result: {{"The patient's diagnosis is {}".format(gene_predicted_label_1)}}</td>
         </tr>
 
         <tr>
@@ -135,6 +136,18 @@
             <td><label class="probability">MCI probability:{{"{:0.2f}%".format(MCI_probability)}}</label></td> 
         </tr>
     </table>
+    {% elif predicted_label=="CN" and gene_predicted_label_1 == "empty" %}
+    <table>
+        <tr>
+            <td id="gene_result" colspan="3">Result: {{"The patient's diagnosis is {}".format(predicted_label)}}</td>
+        </tr>
+
+        <tr>
+            <td><label class="probability">AD_MCI probability: {{"{:0.2f}%".format(AD_MCI_probability)}}</label></td> 
+            <td><label class="probability">CN probability: {{"{:0.2f}%".format(CN_probability)}}</label></td> 
+        </tr>
+    </table>
+    {% endif %}
     {% endif %}
 
 </div>
